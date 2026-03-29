@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -13,6 +13,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PasswordManager">
+        <activity
+            android:name=".presentation.auth.LoginAndSignupActivity"
+            android:exported="false"
+            android:label="@string/title_activity_login_and_signup"
+            android:theme="@style/Theme.PasswordManager" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
