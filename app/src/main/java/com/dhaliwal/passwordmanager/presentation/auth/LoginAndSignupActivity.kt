@@ -1,5 +1,6 @@
 package com.dhaliwal.passwordmanager.presentation.auth
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -47,7 +48,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dhaliwal.passwordmanager.data.remote.FirebaseAuthMethods.login
+import com.dhaliwal.passwordmanager.data.remote.FirebaseAuthMethods.signup
+import com.dhaliwal.passwordmanager.presentation.SecurityCheckActivity
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 class LoginAndSignupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +69,6 @@ class LoginAndSignupActivity : ComponentActivity() {
 
 @Composable
 fun AuthScreen() {
-
     val context = LocalContext.current
 
     var isLogin by remember { mutableStateOf(true) }
@@ -71,6 +76,7 @@ fun AuthScreen() {
     var password by remember { mutableStateOf("") }
     var accepted by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+    val auth = Firebase.auth
 
     Column(
         modifier = Modifier
@@ -204,13 +210,34 @@ fun AuthScreen() {
                             }
 
                             else -> {
-                                Toast.makeText(
-                                    context,
-                                    if (isLogin) "Login Clicked" else "Signup Clicked",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                if (isLogin) {
 
-                                // 👉 Call Firebase here
+                                    login(email, password, auth) { success, error ->
+
+                                        if (success) {
+                                            Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
+                                            context.startActivity(Intent(context, SecurityCheckActivity::class.java))
+                                        } else {
+                                            Toast.makeText(context, error ?: "Invalid Credentials", Toast.LENGTH_SHORT).show()
+                                            email = ""
+                                            password = ""
+                                        }
+                                    }
+
+                                } else {
+
+                                    signup(email, password, auth) { success, error ->
+
+                                        if (success) {
+                                            Toast.makeText(context, "Signup Successful", Toast.LENGTH_SHORT).show()
+                                            context.startActivity(Intent(context, SecurityCheckActivity::class.java))
+                                        } else {
+                                            Toast.makeText(context, error ?: "Failed", Toast.LENGTH_SHORT).show()
+                                            email = ""
+                                            password = ""
+                                        }
+                                    }
+                                }
                             }
                         }
                     },

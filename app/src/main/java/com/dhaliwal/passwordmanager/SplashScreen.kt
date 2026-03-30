@@ -20,10 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.dhaliwal.passwordmanager.presentation.SecurityCheckActivity
 import com.dhaliwal.passwordmanager.presentation.auth.LoginAndSignupActivity
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
 import com.dhaliwal.passwordmanager.utils.AppTheme
 import com.dhaliwal.passwordmanager.utils.ThemeMode
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,13 +54,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        val auth = Firebase.auth
         Handler().postDelayed(
             {
                 val intent = Intent(
                     applicationContext,
-                    LoginAndSignupActivity::class.java
+                    if (auth.currentUser != null) SecurityCheckActivity::class.java else LoginAndSignupActivity::class.java
                 )
                 startActivity(intent)
+                finish()
             },
             1800
         )

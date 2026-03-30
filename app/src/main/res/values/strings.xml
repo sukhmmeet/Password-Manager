@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Password Manager</string>
     <string name="title_activity_login_and_signup">Login_and_Signup_Activity</string>
+    <string name="title_activity_security_check">SecurityCheckActivity</string>
 </resources>
