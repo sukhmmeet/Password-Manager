@@ -54,12 +54,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        val auth = Firebase.auth
+        val user = null // Firebase.auth.currentUser
         Handler().postDelayed(
             {
                 val intent = Intent(
                     applicationContext,
-                    if (auth.currentUser != null) SecurityCheckActivity::class.java else LoginAndSignupActivity::class.java
+                    if (user != null) SecurityCheckActivity::class.java else LoginAndSignupActivity::class.java
                 )
                 startActivity(intent)
                 finish()
