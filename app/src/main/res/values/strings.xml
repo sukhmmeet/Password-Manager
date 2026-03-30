@@ -2,4 +2,6 @@
     <string name="app_name">Password Manager</string>
     <string name="title_activity_login_and_signup">Login_and_Signup_Activity</string>
     <string name="title_activity_security_check">SecurityCheckActivity</string>
+    <string name="title_activity_forgot_password">ForgotPassword</string>
+    <string name="default_web_client_id">468072662256-np4rkgnddat2vlc5nq7blg2e11buh35p.apps.googleusercontent.com</string>
 </resources>

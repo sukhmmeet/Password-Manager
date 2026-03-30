@@ -1,4 +1,4 @@
-package com.dhaliwal.passwordmanager.presentation
+package com.dhaliwal.passwordmanager.presentation.auth
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,19 +14,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
 import com.dhaliwal.passwordmanager.utils.Util.isDarkTheme
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 
-class SecurityCheckActivity : ComponentActivity() {
+class ForgotPasswordActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val user = Firebase.auth.currentUser
             PasswordManagerTheme(isDarkTheme(LocalContext.current)) {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "${user?.email} \n${user?.uid}",
+                        name = "Password Reset Activity",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

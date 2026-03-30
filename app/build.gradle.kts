@@ -64,4 +64,10 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation (libs.androidx.compose.material.icons.extended)
+    implementation(libs.googleid.v111)
+    implementation(libs.androidx.credentials.v160rc02)
+    implementation(libs.androidx.credentials.play.services.auth.v160rc02)
+    implementation (libs.androidx.navigation.compose)
+    implementation (libs.androidx.lifecycle.runtime.ktx.v262)
+    implementation (libs.play.services.auth)
 }
