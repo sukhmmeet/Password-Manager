@@ -48,10 +48,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val user = Firebase.auth.currentUser
-
         lifecycleScope.launch {
             delay(3000)
+
+            val user = Firebase.auth.currentUser
 
             val intent = Intent(
                 this@MainActivity,

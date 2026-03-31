@@ -1,14 +1,12 @@
 package com.dhaliwal.passwordmanager.presentation.auth
 
-import android.app.Activity
 import android.content.Intent
+import androidx.credentials.CredentialManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,10 +36,11 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,22 +53,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.dhaliwal.passwordmanager.R
-import com.dhaliwal.passwordmanager.data.remote.FirebaseAuthMethods.loginWithGoogle
-import com.dhaliwal.passwordmanager.data.remote.FirebaseAuthMethods.login
-import com.dhaliwal.passwordmanager.data.remote.FirebaseAuthMethods.signup
+import com.dhaliwal.passwordmanager.data.model.AuthState
+import com.dhaliwal.passwordmanager.data.model.FirebaseAuthViewModel
 import com.dhaliwal.passwordmanager.presentation.SecurityCheckActivity
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
+import com.dhaliwal.passwordmanager.utils.Util
 import com.dhaliwal.passwordmanager.utils.Util.isDarkTheme
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.common.api.ApiException
-import com.google.firebase.Firebase
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import dagger.hilt.android.AndroidEntryPoint
 import kotlin.jvm.java
 
+@AndroidEntryPoint
 class LoginAndSignupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,6 +79,9 @@ class LoginAndSignupActivity : ComponentActivity() {
 
 @Composable
 fun AuthScreen() {
+    val viewModel : FirebaseAuthViewModel = hiltViewModel()
+    val state by viewModel.authState.collectAsState()
+
     val context = LocalContext.current
 
     var isLogin by remember { mutableStateOf(true) }
@@ -91,27 +89,36 @@ fun AuthScreen() {
     var password by remember { mutableStateOf("") }
     var accepted by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
-    val auth = Firebase.auth
 
-    val scope = rememberCoroutineScope()
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
+    val credentialManager = remember { CredentialManager.create(context) }
 
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+    val request = remember {
+        Util.getGoogleSignInRequest(
+            serverClientId = context.getString(R.string.default_web_client_id)
+        )
+    }
 
-            scope.launch {
-                Firebase.auth.signInWithCredential(credential).await()
-                Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+    LaunchedEffect(state) {
+        when (state) {
+            is AuthState.Loading -> {
+                Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
             }
 
-        } catch (e: Exception) {
-            Toast.makeText(context, "Google Sign-in failed", Toast.LENGTH_SHORT).show()
+            is AuthState.Success -> {
+                Toast.makeText(context, "${if (isLogin) "Login" else "Sign up"} Successful", Toast.LENGTH_SHORT).show()
+                context.startActivity(Intent(context, SecurityCheckActivity::class.java))
+            }
+
+            is AuthState.Error -> {
+                val message = (state as AuthState.Error).message
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
+
+
+            else -> {}
         }
     }
+
 
     Column(
         modifier = Modifier
@@ -258,32 +265,9 @@ fun AuthScreen() {
 
                             else -> {
                                 if (isLogin) {
-
-                                    login(email, password, auth) { success, error ->
-
-                                        if (success) {
-                                            Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-                                            context.startActivity(Intent(context, SecurityCheckActivity::class.java))
-                                        } else {
-                                            Toast.makeText(context, error ?: "Invalid Credentials", Toast.LENGTH_SHORT).show()
-                                            email = ""
-                                            password = ""
-                                        }
-                                    }
-
+                                    viewModel.login(email, password)
                                 } else {
-
-                                    signup(email, password, auth) { success, error ->
-
-                                        if (success) {
-                                            Toast.makeText(context, "Signup Successful", Toast.LENGTH_SHORT).show()
-                                            context.startActivity(Intent(context, SecurityCheckActivity::class.java))
-                                        } else {
-                                            Toast.makeText(context, error ?: "Failed", Toast.LENGTH_SHORT).show()
-                                            email = ""
-                                            password = ""
-                                        }
-                                    }
+                                    viewModel.signup(email, password)
                                 }
                             }
                         }
@@ -323,25 +307,15 @@ fun AuthScreen() {
                     )
                 }
                 Spacer(modifier = Modifier.height(20.dp))
-                val activity = context as? Activity
                 OutlinedCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .clickable {
-                            loginWithGoogle(
+                            viewModel.loginWithGoogle(
                                 context = context,
-                                scope = scope,
-                                launcher = launcher,
-                                login = {
-                                    Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-
-                                    activity?.let {
-                                        val intent = Intent(it, SecurityCheckActivity::class.java)
-                                        it.startActivity(intent)
-                                        it.finish()
-                                    }
-                                }
+                                credentialManager = credentialManager,
+                                request = request
                             )
                         },
                     shape = RoundedCornerShape(14.dp),

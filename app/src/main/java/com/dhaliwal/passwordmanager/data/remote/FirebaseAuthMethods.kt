@@ -55,6 +55,21 @@ object FirebaseAuthMethods {
             }
     }
 
+    fun sendResetPasswordEmail(
+        email : String,
+        auth: FirebaseAuth,
+        callback: (Boolean, String?) -> Unit
+    ){
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful){
+                    callback(true, null)
+                }else {
+                    callback(false, task.exception?.message)
+                }
+            }
+    }
+
     fun loginWithGoogle(
         context: Context,
         scope: CoroutineScope,

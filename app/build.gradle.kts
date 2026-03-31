@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -70,4 +72,7 @@ dependencies {
     implementation (libs.androidx.navigation.compose)
     implementation (libs.androidx.lifecycle.runtime.ktx.v262)
     implementation (libs.play.services.auth)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 }
