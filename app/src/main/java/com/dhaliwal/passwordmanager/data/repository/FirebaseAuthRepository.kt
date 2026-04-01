@@ -1,17 +1,18 @@
 package com.dhaliwal.passwordmanager.data.repository
 
 import android.content.Context
+import android.util.Base64
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
+import com.dhaliwal.passwordmanager.utils.CryptoManager
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
@@ -32,6 +33,26 @@ class FirebaseAuthRepository @Inject constructor(
         return try {
             auth.createUserWithEmailAndPassword(email, password).await()
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun storeSaltInFirebase(uid: String): Result<Unit> {
+        return try {
+            val database = Firebase.database.reference
+
+            val saltBytes = CryptoManager.generateSalt()
+            val saltString = Base64.encodeToString(saltBytes, Base64.NO_WRAP)
+
+            database.child("users")
+                .child(uid)
+                .child("salt")
+                .setValue(saltString)
+                .await()   // ✅ waits for Firebase
+
+            Result.success(Unit)
+
         } catch (e: Exception) {
             Result.failure(e)
         }

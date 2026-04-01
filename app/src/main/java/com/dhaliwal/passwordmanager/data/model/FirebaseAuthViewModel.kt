@@ -6,6 +6,8 @@ import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dhaliwal.passwordmanager.data.repository.FirebaseAuthRepository
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,9 +48,30 @@ class FirebaseAuthViewModel @Inject constructor(
 
             val result = repository.signup(email, password)
 
-            _authState.value = result.fold(
-                onSuccess = { AuthState.Success },
-                onFailure = { AuthState.Error(it.message ?: "Unknown error") }
+            result.fold(
+                onSuccess = {
+                    val uid = Firebase.auth.currentUser?.uid
+
+                    if (uid != null) {
+
+                        val saltResult = repository.storeSaltInFirebase(uid)
+
+                        saltResult.fold(
+                            onSuccess = {
+                                _authState.value = AuthState.Success
+                            },
+                            onFailure = {
+                                _authState.value = AuthState.Error("Salt store failed: ${it.message}")
+                            }
+                        )
+
+                    } else {
+                        _authState.value = AuthState.Error("User ID is null")
+                    }
+                },
+                onFailure = {
+                    _authState.value = AuthState.Error(it.message ?: "Unknown error")
+                }
             )
         }
     }

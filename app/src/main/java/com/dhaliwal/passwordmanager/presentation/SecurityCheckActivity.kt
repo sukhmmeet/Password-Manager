@@ -9,14 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.dhaliwal.passwordmanager.data.model.MasterPasswordViewModel
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
 import com.dhaliwal.passwordmanager.utils.Util.isDarkTheme
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class SecurityCheckActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,7 +29,11 @@ class SecurityCheckActivity : ComponentActivity() {
         setContent {
             val user = Firebase.auth.currentUser
             PasswordManagerTheme(isDarkTheme(LocalContext.current)) {
+                val viewModel : MasterPasswordViewModel = hiltViewModel()
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    LaunchedEffect(Unit) {
+                        viewModel.fetchSalt()
+                    }
                     Greeting(
                         name = "${user?.email} \n${user?.uid}",
                         modifier = Modifier.padding(innerPadding)

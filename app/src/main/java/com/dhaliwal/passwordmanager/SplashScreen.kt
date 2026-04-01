@@ -34,11 +34,9 @@ import androidx.lifecycle.lifecycleScope
 import com.dhaliwal.passwordmanager.presentation.SecurityCheckActivity
 import com.dhaliwal.passwordmanager.presentation.auth.LoginAndSignupActivity
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
-import com.dhaliwal.passwordmanager.utils.AppTheme
-import com.dhaliwal.passwordmanager.utils.ThemeMode
 import com.dhaliwal.passwordmanager.utils.Util.isDarkTheme
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -51,7 +49,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             delay(3000)
 
-            val user = Firebase.auth.currentUser
+            val user = null //Firebase.auth.currentUser
 
             val intent = Intent(
                 this@MainActivity,

@@ -114,7 +114,6 @@ fun AuthScreen() {
                 Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             }
 
-
             else -> {}
         }
     }
@@ -379,12 +378,5 @@ fun ToggleItem(
         contentAlignment = Alignment.Center
     ) {
         Text(text = text, color = textColor)
-    }
-}
-@Preview
-@Composable
-fun PreviewLogin(){
-    PasswordManagerTheme {
-        AuthScreen()
     }
 }

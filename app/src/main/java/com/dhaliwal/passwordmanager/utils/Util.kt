@@ -17,10 +17,10 @@ object Util {
         }
     }
     fun getGoogleSignInRequest(serverClientId: String): GetCredentialRequest {
+
         val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(false)
             .setServerClientId(serverClientId)
+            .setFilterByAuthorizedAccounts(false)
             .build()
 
         return GetCredentialRequest.Builder()
