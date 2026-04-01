@@ -6,38 +6,45 @@ import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-
 class MasterPasswordRepository @Inject constructor(
-    private val database : DatabaseReference
+    private val database: DatabaseReference
 ) {
-    // set change verify
 
-    // 1 Set Password
+    suspend fun initializeSecurity(
+        masterPassword: String,
+        uid: String,
+        salt: String
+    ): Result<Unit> {
+        return try {
+            setPassword(masterPassword, uid, salt).getOrThrow()
+            setupVault(masterPassword, uid, salt).getOrThrow()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun setPassword(
         masterPassword: String,
         uid: String,
         salt: String
     ): Result<Unit> {
         return try {
-            // 🔹 Decode salt properly
             val saltBytes = Base64.decode(salt, Base64.NO_WRAP)
-
-            // 🔹 Derive key
             val key = CryptoManager.deriveKey(masterPassword, saltBytes)
 
-            // 🔹 Encrypt (returns encryptedData + iv)
-            val (encryptedData, iv, _) = CryptoManager.encrypt("AUTH_SUCCESS", key)
+            val (encryptedData, iv, _) =
+                CryptoManager.encrypt("AUTH_SUCCESS", key)
 
-            val encryptedDataAndIV = EncryptedDataAndIV(
+            val data = EncryptedDataAndIV(
                 encryptedData = encryptedData,
                 iv = iv
             )
 
-            // 🔹 Store in Firebase
             database.child("users")
                 .child(uid)
                 .child("masterPassword")
-                .setValue(encryptedDataAndIV)
+                .setValue(data)
                 .await()
 
             Result.success(Unit)
@@ -47,7 +54,6 @@ class MasterPasswordRepository @Inject constructor(
         }
     }
 
-    // 2 Verify
     suspend fun verifyPassword(
         masterPassword: String,
         uid: String,
@@ -64,27 +70,27 @@ class MasterPasswordRepository @Inject constructor(
                 .get()
                 .await()
 
-            val encryptedData = snapshot.child("encryptedData").getValue(String::class.java)
-            val iv = snapshot.child("iv").getValue(String::class.java)
+            val encryptedData =
+                snapshot.child("encryptedData").getValue(String::class.java)
+            val iv =
+                snapshot.child("iv").getValue(String::class.java)
 
-            if (encryptedData == null || iv == null) {
-                return Result.failure(Exception("Missing data"))
-            }
+            requireNotNull(encryptedData)
+            requireNotNull(iv)
 
             val decrypted = CryptoManager.decrypt(encryptedData, iv, key)
 
-            return if (decrypted == "AUTH_SUCCESS") {
+            if (decrypted == "AUTH_SUCCESS") {
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("Invalid password"))
             }
 
         } catch (e: Exception) {
-            Result.failure(Exception("Invalid password"))
+            Result.failure(e)
         }
     }
 
-    // 3 Change
     suspend fun changePassword(
         oldPassword: String,
         newPassword: String,
@@ -94,19 +100,17 @@ class MasterPasswordRepository @Inject constructor(
         return try {
             val saltBytes = Base64.decode(salt, Base64.NO_WRAP)
 
-            // 🔹 Step 1: Verify old password
             val verifyResult = verifyPassword(oldPassword, uid, salt)
             if (verifyResult.isFailure) {
                 return Result.failure(Exception("Old password incorrect"))
             }
 
-            // 🔹 Step 2: Derive new key
             val newKey = CryptoManager.deriveKey(newPassword, saltBytes)
 
-            // 🔹 Step 3: Update master password block
-            val (encryptedData, iv, _) = CryptoManager.encrypt("AUTH_SUCCESS", newKey)
+            val (encryptedData, iv, _) =
+                CryptoManager.encrypt("AUTH_SUCCESS", newKey)
 
-            val encryptedDataAndIV = EncryptedDataAndIV(
+            val data = EncryptedDataAndIV(
                 encryptedData = encryptedData,
                 iv = iv
             )
@@ -114,10 +118,60 @@ class MasterPasswordRepository @Inject constructor(
             database.child("users")
                 .child(uid)
                 .child("masterPassword")
-                .setValue(encryptedDataAndIV)
+                .setValue(data)
                 .await()
 
             Result.success(Unit)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setupVault(
+        masterPassword: String,
+        uid: String,
+        salt: String
+    ): Result<Unit> {
+        return try {
+            val saltBytes = Base64.decode(salt, Base64.NO_WRAP)
+            val derivedKey = CryptoManager.deriveKey(masterPassword, saltBytes)
+
+            val vaultKey = CryptoManager.generateAESKey()
+            val vaultKeyBase64 =
+                Base64.encodeToString(vaultKey.encoded, Base64.NO_WRAP)
+
+            val (encryptedVaultKey, iv, _) =
+                CryptoManager.encrypt(vaultKeyBase64, derivedKey)
+
+            val data = VaultKeyData(
+                encryptedVaultKey = encryptedVaultKey,
+                iv = iv
+            )
+
+            database.child("users")
+                .child(uid)
+                .child("vaultKey")
+                .setValue(data)
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun hasMasterPassword(uid: String): Result<Boolean> {
+        return try {
+            val snapshot = database
+                .child("users")
+                .child(uid)
+                .child("masterPassword")
+                .get()
+                .await()
+
+            Result.success(snapshot.exists())
 
         } catch (e: Exception) {
             Result.failure(e)
@@ -148,6 +202,10 @@ class MasterPasswordRepository @Inject constructor(
 }
 
 data class EncryptedDataAndIV(
-    val encryptedData : String,
-    val iv : String
+    val encryptedData: String,
+    val iv: String
+)
+data class VaultKeyData(
+    val encryptedVaultKey: String = "",
+    val iv: String = ""
 )

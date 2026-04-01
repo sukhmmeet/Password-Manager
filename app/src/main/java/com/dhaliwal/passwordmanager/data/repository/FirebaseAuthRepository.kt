@@ -49,7 +49,7 @@ class FirebaseAuthRepository @Inject constructor(
                 .child(uid)
                 .child("salt")
                 .setValue(saltString)
-                .await()   // ✅ waits for Firebase
+                .await()
 
             Result.success(Unit)
 

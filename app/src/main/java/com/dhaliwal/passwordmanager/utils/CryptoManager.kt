@@ -3,6 +3,7 @@ package com.dhaliwal.passwordmanager.utils
 import android.util.Base64
 import java.security.SecureRandom
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
@@ -69,5 +70,11 @@ object CryptoManager {
         val decryptedBytes = cipher.doFinal(decodedData)
 
         return String(decryptedBytes)
+    }
+
+    fun generateAESKey(): SecretKey {
+        val keyGenerator = KeyGenerator.getInstance("AES")
+        keyGenerator.init(256) // 🔐 256-bit AES key
+        return keyGenerator.generateKey()
     }
 }

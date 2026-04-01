@@ -16,19 +16,58 @@ sealed class PassState{
     object Success : PassState()
     data class Error(val message : String) : PassState()
 }
+sealed class SecurityState{
+    object Loading : SecurityState()
+    object NeedToSetPassword : SecurityState()
+    object NeedToVerifyPassword : SecurityState()
+}
 @HiltViewModel
 class MasterPasswordViewModel @Inject constructor(
     private val repository: MasterPasswordRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<PassState>(PassState.Idle)
+    private val _securityState = MutableStateFlow<SecurityState>(SecurityState.Loading)
     val state = _state
+    val securityState = _securityState
 
     private var salt: String? = null
 
-    // run this in LaunchedEffect from UI
-    fun fetchSalt() {
+    private fun getUid(): String? {
+        return Firebase.auth.currentUser?.uid
+    }
+
+    fun resetState() {
+        _state.value = PassState.Idle
+    }
+
+    fun checkUser() {
         val uid = Firebase.auth.currentUser?.uid ?: return
+
+        viewModelScope.launch {
+            _securityState.value = SecurityState.Loading
+
+            val result = repository.hasMasterPassword(uid)
+
+            if (result.isSuccess) {
+                val hasPassword = result.getOrNull() ?: false
+
+                _securityState.value = if (hasPassword) {
+                    SecurityState.NeedToVerifyPassword
+                } else {
+                    SecurityState.NeedToSetPassword
+                }
+
+            } else {
+                _state.value = PassState.Error(
+                    result.exceptionOrNull()?.message ?: "Something went wrong"
+                )
+            }
+        }
+    }
+
+    fun fetchSalt() {
+        val uid = getUid() ?: return
 
         viewModelScope.launch {
             _state.value = PassState.Loading
@@ -46,4 +85,101 @@ class MasterPasswordViewModel @Inject constructor(
         }
     }
 
+    fun setPassword(masterPassword: String) {
+
+        val uid = getUid()
+
+        if (uid.isNullOrBlank() || salt == null) {
+            _state.value = PassState.Error("Missing uid or salt")
+            return
+        }
+
+        val currentSalt = salt ?: run {
+            _state.value = PassState.Error("Salt not loaded")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = PassState.Loading
+
+            val result = repository.setPassword(
+                masterPassword = masterPassword,
+                uid = uid,
+                salt = currentSalt
+            )
+
+            _state.value = if (result.isSuccess) {
+                PassState.Success
+            } else {
+                PassState.Error(
+                    result.exceptionOrNull()?.message ?: "Something went wrong"
+                )
+            }
+        }
+    }
+
+    fun verifyPassword(masterPassword: String) {
+        val uid = getUid()
+
+        if (uid.isNullOrBlank()) {
+            _state.value = PassState.Error("User not logged in")
+            return
+        }
+
+        val currentSalt = salt ?: run {
+            _state.value = PassState.Error("Salt not loaded")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = PassState.Loading
+
+            val result = repository.verifyPassword(
+                masterPassword = masterPassword,
+                uid = uid,
+                salt = currentSalt
+            )
+
+            _state.value = if (result.isSuccess) {
+                PassState.Success
+            } else {
+                PassState.Error(
+                    result.exceptionOrNull()?.message ?: "Invalid password"
+                )
+            }
+        }
+    }
+    fun changePassword(
+        oldMasterPassword : String,
+        newMasterPassword : String
+    ){
+        val uid = getUid()
+
+        if (uid.isNullOrBlank()) {
+            _state.value = PassState.Error("User not logged in")
+            return
+        }
+
+        val currentSalt = salt ?: run {
+            _state.value = PassState.Error("Salt not loaded")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = PassState.Loading
+            val result = repository.changePassword(
+                oldPassword = oldMasterPassword,
+                newPassword = newMasterPassword,
+                uid = uid,
+                salt = currentSalt
+            )
+            _state.value = if (result.isSuccess) {
+                PassState.Success
+            } else {
+                PassState.Error(
+                    result.exceptionOrNull()?.message ?: "Incorrect password"
+                )
+            }
+        }
+    }
 }
