@@ -15,6 +15,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PasswordManager">
         <activity
+            android:name=".presentation.vault.VaultActivity"
+            android:exported="false"
+            android:label="@string/title_activity_vault"
+            android:theme="@style/Theme.PasswordManager" />
+        <activity
             android:name=".presentation.auth.ForgotPasswordActivity"
             android:exported="false"
             android:label="@string/title_activity_forgot_password"

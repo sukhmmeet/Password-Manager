@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             delay(3000)
 
-            val user = null //Firebase.auth.currentUser
+            val user = Firebase.auth.currentUser
 
             val intent = Intent(
                 this@MainActivity,

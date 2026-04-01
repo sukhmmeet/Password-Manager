@@ -14,6 +14,7 @@ sealed class PassState{
     object Idle : PassState()
     object Loading : PassState()
     object Success : PassState()
+    object PasswordChanged : PassState()
     data class Error(val message : String) : PassState()
 }
 sealed class SecurityState{
@@ -42,7 +43,7 @@ class MasterPasswordViewModel @Inject constructor(
     }
 
     fun checkUser() {
-        val uid = Firebase.auth.currentUser?.uid ?: return
+        val uid = getUid() ?: return
 
         viewModelScope.launch {
             _securityState.value = SecurityState.Loading
@@ -76,7 +77,7 @@ class MasterPasswordViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 salt = result.getOrNull()
-                _state.value = PassState.Success
+                _state.value = PassState.Idle
             } else {
                 _state.value = PassState.Error(
                     result.exceptionOrNull()?.message ?: "Failed to get salt"
@@ -85,15 +86,8 @@ class MasterPasswordViewModel @Inject constructor(
         }
     }
 
-    fun setPassword(masterPassword: String) {
-
-        val uid = getUid()
-
-        if (uid.isNullOrBlank() || salt == null) {
-            _state.value = PassState.Error("Missing uid or salt")
-            return
-        }
-
+    fun setupMasterPasswordAndVault(masterPassword: String) {
+        val uid = getUid() ?: return
         val currentSalt = salt ?: run {
             _state.value = PassState.Error("Salt not loaded")
             return
@@ -102,7 +96,7 @@ class MasterPasswordViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = PassState.Loading
 
-            val result = repository.setPassword(
+            val result = repository.initializeSecurity(
                 masterPassword = masterPassword,
                 uid = uid,
                 salt = currentSalt
@@ -174,7 +168,7 @@ class MasterPasswordViewModel @Inject constructor(
                 salt = currentSalt
             )
             _state.value = if (result.isSuccess) {
-                PassState.Success
+                PassState.PasswordChanged
             } else {
                 PassState.Error(
                     result.exceptionOrNull()?.message ?: "Incorrect password"
