@@ -91,9 +91,40 @@ class FirebaseAuthViewModel @Inject constructor(
                 request
             )
 
-            _authState.value = result.fold(
-                onSuccess = { AuthState.Success },
-                onFailure = { AuthState.Error(it.message ?: "Google login failed") }
+            result.fold(
+                onSuccess = {
+                    val uid = Firebase.auth.currentUser?.uid
+
+                    if (uid == null) {
+                        _authState.value = AuthState.Error("User ID is null")
+                        return@launch
+                    }
+
+                    try {
+                        val saltExists = repository.doesSaltExist(uid)
+
+                        if (!saltExists) {
+                            val setupResult = repository.storeSaltInFirebase(uid)
+
+                            setupResult.fold(
+                                onSuccess = {
+                                    _authState.value = AuthState.Success
+                                },
+                                onFailure = {
+                                    _authState.value = AuthState.Error("Setup failed: ${it.message}")
+                                }
+                            )
+                        } else {
+                            _authState.value = AuthState.Success
+                        }
+
+                    } catch (e: Exception) {
+                        _authState.value = AuthState.Error("Salt check failed: ${e.message}")
+                    }
+                },
+                onFailure = {
+                    _authState.value = AuthState.Error(it.message ?: "Google login failed")
+                }
             )
         }
     }

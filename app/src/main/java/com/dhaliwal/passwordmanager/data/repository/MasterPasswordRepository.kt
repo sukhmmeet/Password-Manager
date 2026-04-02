@@ -2,6 +2,7 @@ package com.dhaliwal.passwordmanager.data.repository
 
 import android.util.Base64
 import com.dhaliwal.passwordmanager.utils.CryptoManager
+import com.dhaliwal.passwordmanager.utils.VaultEncryptionManager.encryptVault
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -138,27 +139,36 @@ class MasterPasswordRepository @Inject constructor(
             val derivedKey = CryptoManager.deriveKey(masterPassword, saltBytes)
 
             val vaultKey = CryptoManager.generateAESKey()
-            val vaultKeyBase64 =
-                Base64.encodeToString(vaultKey.encoded, Base64.NO_WRAP)
+            val vaultKeyBase64 = Base64.encodeToString(vaultKey.encoded, Base64.NO_WRAP)
 
-            val (encryptedVaultKey, iv, _) =
+            val (encryptedVaultKey, keyIv, _) =
                 CryptoManager.encrypt(vaultKeyBase64, derivedKey)
 
-            val data = VaultKeyData(
+            val vaultKeyData = VaultKeyData(
                 encryptedVaultKey = encryptedVaultKey,
-                iv = iv
+                iv = keyIv
             )
 
-            database.child("users")
-                .child(uid)
-                .child("vaultKey")
-                .setValue(data)
-                .await()
+            val emptyList = emptyList<VaultEntry>()
+            val (encryptedData, dataIv) = encryptVault(emptyList, vaultKey)
+
+            val vault = EncryptedVault(
+                encryptedData = encryptedData,
+                iv = dataIv,
+                updatedAt = System.currentTimeMillis()
+            )
+
+            val updates = mapOf(
+                "users/$uid/vaultKey" to vaultKeyData,
+                "users/$uid/vault" to vault
+            )
+
+            database.updateChildren(updates).await()
 
             Result.success(Unit)
 
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Vault setup failed", e))
         }
     }
 

@@ -98,5 +98,8 @@ dependencies {
         // Debug
         debugImplementation(libs.androidx.compose.ui.tooling)
         debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+        // Gson
+        implementation("com.google.code.gson:gson:2.13.2")
     }
 }

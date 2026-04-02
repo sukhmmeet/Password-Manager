@@ -24,14 +24,3 @@ object AppTheme {
 enum class ThemeMode {
     LIGHT, DARK, SYSTEM
 }
-
-// it used when need of theme
-//val context = LocalContext.current
-//val themeMode = AppTheme.getTheme(context)
-//val systemDark = isSystemInDarkTheme()
-//
-//val isDark = when (themeMode) {
-//    ThemeMode.LIGHT -> false
-//    ThemeMode.DARK -> true
-//    ThemeMode.SYSTEM -> systemDark
-//}

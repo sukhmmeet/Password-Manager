@@ -58,6 +58,17 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
+    suspend fun doesSaltExist(uid: String): Boolean {
+        val snapshot = Firebase.database.reference
+            .child("users")
+            .child(uid)
+            .child("salt")
+            .get()
+            .await()
+
+        return snapshot.exists()
+    }
+
     // 🔹 Reset Password
     suspend fun sendResetPasswordEmail(email: String): Result<Unit> {
         return try {
