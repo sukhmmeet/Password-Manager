@@ -102,4 +102,9 @@ dependencies {
         // Gson
         implementation("com.google.code.gson:gson:2.13.2")
     }
+    val room_version = "2.8.4"
+
+    implementation("androidx.room:room-runtime:$room_version")  // Core Room runtime
+    ksp("androidx.room:room-compiler:$room_version")           // Kotlin annotation processor
+    implementation("androidx.room:room-ktx:$room_version")     // Kotlin coroutines/extensions
 }

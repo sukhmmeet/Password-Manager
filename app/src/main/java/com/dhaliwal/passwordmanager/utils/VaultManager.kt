@@ -7,38 +7,10 @@ import com.dhaliwal.passwordmanager.utils.VaultEncryptionManager.encryptVault
 import javax.crypto.SecretKey
 
 object VaultManager {
-
-    fun addVaultEntry(
-        newEntry: VaultEntry,
-        encryptedVault: EncryptedVault,
-        vaultKey: SecretKey
-    ): EncryptedVault = modifyVault(encryptedVault, vaultKey) {
-        it.add(newEntry)
-    }
-
-    fun updateVaultEntry(
-        selectedEntry: VaultEntry,
-        encryptedVault: EncryptedVault,
-        vaultKey: SecretKey
-    ): EncryptedVault = modifyVault(encryptedVault, vaultKey) {
-        val index = it.indexOfFirst { e -> e.id == selectedEntry.id }
-        if (index != -1) {
-            it[index] = selectedEntry
-        }
-    }
-
-    fun deleteVaultEntry(
-        selectedEntry: VaultEntry,
-        encryptedVault: EncryptedVault,
-        vaultKey: SecretKey
-    ): EncryptedVault = modifyVault(encryptedVault, vaultKey) {
-        it.removeAll { e -> e.id == selectedEntry.id }
-    }
-
-    private fun modifyVault(
+    fun modifyVault(
         encryptedVault: EncryptedVault,
         vaultKey: SecretKey,
-        block: (MutableList<VaultEntry>) -> Unit
+        operation: VaultOperation
     ): EncryptedVault {
         val list = decryptVault(
             encryptedVault.encryptedData,
@@ -46,14 +18,41 @@ object VaultManager {
             vaultKey
         ).toMutableList()
 
-        block(list)
+        when (operation) {
+            is VaultOperation.Add -> {
+                list.removeAll { it.id == operation.entry.id }
+                list.add(operation.entry)
+            }
+            is VaultOperation.Update -> {
+                val index = list.indexOfFirst { it.id == operation.entry.id }
+                if (index != -1) list[index] = operation.entry
+            }
+            is VaultOperation.Delete -> {
+                list.removeAll { it.id == operation.entry.id }
+            }
+        }
 
         val (data, iv) = encryptVault(list, vaultKey)
 
         return EncryptedVault(
             encryptedData = data,
             iv = iv,
-            updatedAt = System.currentTimeMillis()
+            updatedAt = encryptedVault.updatedAt
         )
     }
+
+    fun addEntry(encryptedVault: EncryptedVault, vaultKey: SecretKey, entry: VaultEntry) =
+        modifyVault(encryptedVault, vaultKey, VaultOperation.Add(entry))
+
+    fun updateEntry(encryptedVault: EncryptedVault, vaultKey: SecretKey, entry: VaultEntry) =
+        modifyVault(encryptedVault, vaultKey, VaultOperation.Update(entry))
+
+    fun deleteEntry(encryptedVault: EncryptedVault, vaultKey: SecretKey, entry: VaultEntry) =
+        modifyVault(encryptedVault, vaultKey, VaultOperation.Delete(entry))
+}
+
+sealed class VaultOperation {
+    data class Add(val entry: VaultEntry) : VaultOperation()
+    data class Update(val entry: VaultEntry) : VaultOperation()
+    data class Delete(val entry: VaultEntry) : VaultOperation()
 }

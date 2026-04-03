@@ -88,19 +88,11 @@ class MasterPasswordViewModel @Inject constructor(
 
     fun setupMasterPasswordAndVault(masterPassword: String) {
         val uid = getUid() ?: return
-        val currentSalt = salt ?: run {
-            _state.value = PassState.Error("Salt not loaded")
-            return
-        }
 
         viewModelScope.launch {
             _state.value = PassState.Loading
 
-            val result = repository.initializeSecurity(
-                masterPassword = masterPassword,
-                uid = uid,
-                salt = currentSalt
-            )
+            val result = repository.initializeSecurity(masterPassword = masterPassword, uid = uid)
 
             _state.value = if (result.isSuccess) {
                 PassState.Success

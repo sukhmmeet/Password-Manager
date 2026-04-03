@@ -10,6 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.dhaliwal.passwordmanager.utils.Util
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFFFF6659),
@@ -75,7 +76,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun PasswordManagerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = Util.isDarkTheme(LocalContext.current),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

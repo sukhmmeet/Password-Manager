@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            PasswordManagerTheme(isDarkTheme(LocalContext.current)) {
+            PasswordManagerTheme() {
                 SplashScreen()
             }
         }
