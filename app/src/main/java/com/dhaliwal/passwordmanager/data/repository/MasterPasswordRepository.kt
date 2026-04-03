@@ -95,19 +95,49 @@ class MasterPasswordRepository @Inject constructor(
         }
     }
 
-    suspend fun changePassword(oldPassword: String, newPassword: String, uid: String, salt: String): Result<Unit> {
+    suspend fun changePassword(
+        oldPassword: String,
+        newPassword: String,
+        uid: String,
+        salt: String
+    ): Result<Unit> {
         return try {
             val saltBytes = Base64.decode(salt, Base64.NO_WRAP)
 
             val verifyResult = verifyPassword(oldPassword, uid, salt)
-            if (verifyResult.isFailure) return Result.failure(Exception("Old password incorrect"))
+            if (verifyResult.isFailure) {
+                return Result.failure(Exception("Old password incorrect"))
+            }
 
-            val newKey = CryptoManager.deriveKey(newPassword, saltBytes)
-            val (encryptedData, iv, _) = CryptoManager.encrypt("AUTH_SUCCESS", newKey)
-            val data = EncryptedDataAndIV(encryptedData, iv)
+            val oldDerivedKey = CryptoManager.deriveKey(oldPassword, saltBytes)
+            val newDerivedKey = CryptoManager.deriveKey(newPassword, saltBytes)
 
-            database.child("users").child(uid).child("masterPassword").setValue(data).await()
+            val vaultKeySnapshot = database.child("users").child(uid).child("vaultKey").get().await()
+            val encryptedVaultKey = vaultKeySnapshot.child("encryptedVaultKey").getValue(String::class.java)
+                ?: return Result.failure(Exception("Vault key missing"))
+            val keyIv = vaultKeySnapshot.child("iv").getValue(String::class.java)
+                ?: return Result.failure(Exception("Vault key IV missing"))
+
+            val vaultKeyBase64 = CryptoManager.decrypt(encryptedVaultKey, keyIv, oldDerivedKey)
+
+            val (newEncryptedVaultKey, newIv, _) = CryptoManager.encrypt(vaultKeyBase64, newDerivedKey)
+
+            val newVaultKeyData = VaultKeyData(
+                encryptedVaultKey = newEncryptedVaultKey,
+                iv = newIv
+            )
+
+            val (encryptedData, masterIv, _) = CryptoManager.encrypt("AUTH_SUCCESS", newDerivedKey)
+            val masterPasswordData = EncryptedDataAndIV(encryptedData, masterIv)
+
+            val updates = mapOf(
+                "masterPassword" to masterPasswordData,
+                "vaultKey" to newVaultKeyData
+            )
+            database.child("users").child(uid).updateChildren(updates).await()
+
             Result.success(Unit)
+
         } catch (e: Exception) {
             Result.failure(e)
         }
