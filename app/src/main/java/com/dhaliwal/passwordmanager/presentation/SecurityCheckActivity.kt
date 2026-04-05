@@ -132,6 +132,10 @@ fun SecurityCheckUI() {
                 viewModel.resetState()
             }
 
+            PassState.PasswordChangeLoading -> {
+                Toast.makeText(context, "Changing password...", Toast.LENGTH_SHORT).show()
+            }
+
             else -> {}
         }
     }

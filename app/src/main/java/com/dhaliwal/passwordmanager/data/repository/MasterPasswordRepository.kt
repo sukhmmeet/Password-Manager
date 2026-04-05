@@ -121,20 +121,6 @@ class MasterPasswordRepository @Inject constructor(
             val oldDerivedKey = CryptoManager.deriveKey(oldPassword, saltBytes)
             val newDerivedKey = CryptoManager.deriveKey(newPassword, saltBytes)
 
-//            val vaultKeySnapshot = database.child("users").child(uid).child("vaultKey").get().await()
-//            val encryptedVaultKey = vaultKeySnapshot.child("encryptedVaultKey").getValue(String::class.java)
-//                ?: return Result.failure(Exception("Vault key missing"))
-//            val keyIv = vaultKeySnapshot.child("iv").getValue(String::class.java)
-//                ?: return Result.failure(Exception("Vault key IV missing"))
-
-//            val vaultKeyBase64 = CryptoManager.decrypt(encryptedVaultKey, keyIv, oldDerivedKey)
-
-//            val (newEncryptedVaultKey, newIv, _) = CryptoManager.encrypt(vaultKeyBase64, newDerivedKey)
-
-//            val newVaultKeyData = VaultKeyData(
-//                encryptedVaultKey = newEncryptedVaultKey,
-//                iv = newIv
-//            )
             val vaultSnapshot = database.child("users").child(uid).child("vault").get().await()
             val encryptedVault = vaultSnapshot.getValue(EncryptedVault::class.java)
                 ?: return Result.failure(Exception("Vault not found"))
@@ -151,7 +137,11 @@ class MasterPasswordRepository @Inject constructor(
 
             val updates = mapOf(
                 "masterPassword" to masterPasswordData,
-                "vault" to newEncryptedVault
+                "vault" to EncryptedVault(
+                    encryptedData = newEncryptedVault.first,
+                    iv = newEncryptedVault.second,
+                    updatedAt = System.currentTimeMillis()
+                )
             )
             database.child("users").child(uid).updateChildren(updates).await()
 

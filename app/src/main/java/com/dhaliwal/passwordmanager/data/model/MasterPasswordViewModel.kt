@@ -14,6 +14,7 @@ sealed class PassState{
     object Idle : PassState()
     object Loading : PassState()
     object Success : PassState()
+    object PasswordChangeLoading : PassState()
     object PasswordChanged : PassState()
     data class Error(val message : String) : PassState()
 }
@@ -158,7 +159,7 @@ class MasterPasswordViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _state.value = PassState.Loading
+            _state.value = PassState.PasswordChangeLoading
             val result = repository.changePassword(
                 oldPassword = oldMasterPassword,
                 newPassword = newMasterPassword,

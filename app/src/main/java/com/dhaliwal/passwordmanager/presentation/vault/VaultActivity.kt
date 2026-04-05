@@ -77,32 +77,52 @@ class VaultActivity : ComponentActivity() {
 
 @Composable
 fun VaultScreen(viewModel: FirebaseVaultViewModel = hiltViewModel()) {
-    val state by viewModel.vaultState.collectAsState(VaultState.Idle)
+    val state by viewModel.vaultState.collectAsState(initial = VaultState.Idle)
 
-    LaunchedEffect(Unit) { viewModel.observeEntries() }
+    LaunchedEffect(Unit) {
+        viewModel.observeEntries()
+    }
 
     when (val currentState = state) {
+        is VaultState.Idle -> FullScreenMessage("Loading vault entries...")
         is VaultState.Loading -> FullScreenMessage("Loading vault entries...")
-        is VaultState.Empty -> FullScreenMessage("Vault is empty. Add your first entry!")
+        is VaultState.Empty -> VaultSuccessScreen(emptyList<VaultEntry>(), viewModel, true)
         is VaultState.Success -> VaultSuccessScreen(currentState.entries)
         is VaultState.Error -> FullScreenMessage("Error: ${currentState.message}")
-        else -> {}
+        VaultState.Updated -> {}
     }
 }
 
 @Composable
-fun FullScreenMessage(message: String) {
+fun FullScreenMessage(message: String, onAddFirstEntry: (() -> Unit)? = null) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(message)
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        if (onAddFirstEntry != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onAddFirstEntry,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.width(200.dp)
+            ) {
+                Text("Add First Entry")
+            }
+        }
     }
 }
 
 @Composable
-fun VaultSuccessScreen(entries: List<VaultEntry>, viewModel: FirebaseVaultViewModel = hiltViewModel()) {
+fun VaultSuccessScreen(entries: List<VaultEntry>, viewModel: FirebaseVaultViewModel = hiltViewModel(), isEmpty : Boolean = false) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -156,9 +176,17 @@ fun VaultSuccessScreen(entries: List<VaultEntry>, viewModel: FirebaseVaultViewMo
                 }
             }
         ) { padding ->
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-                items(entries) { entry ->
-                    VaultItem(entry) { selectedEntry = entry }
+            if(isEmpty){
+                FullScreenMessage("Your Vault is empty. Start by adding your first password entry!") {
+                    val intent = Intent(context, AddOrEditEntryActivity::class.java)
+                    intent.putExtra("isEdit", false)
+                    context.startActivity(intent)
+                }
+            }else{
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    items(entries) { entry ->
+                        VaultItem(entry) { selectedEntry = entry }
+                    }
                 }
             }
         }
