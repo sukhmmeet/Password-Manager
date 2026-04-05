@@ -1,7 +1,9 @@
 package com.dhaliwal.passwordmanager.data.repository
 
 import android.util.Base64
+import com.dhaliwal.passwordmanager.data.VaultSession
 import com.dhaliwal.passwordmanager.utils.CryptoManager
+import com.dhaliwal.passwordmanager.utils.VaultEncryptionManager
 import com.dhaliwal.passwordmanager.utils.VaultEncryptionManager.encryptVault
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
@@ -24,17 +26,17 @@ class MasterPasswordRepository @Inject constructor(
             val saltBase64 = Base64.encodeToString(saltBytes, Base64.NO_WRAP)
             val derivedKey = CryptoManager.deriveKey(masterPassword, saltBytes)
 
-            val vaultKey = CryptoManager.generateAESKey()
-            val vaultKeyBase64 = Base64.encodeToString(vaultKey.encoded, Base64.NO_WRAP)
+//            val vaultKey = CryptoManager.generateAESKey()
+//            val vaultKeyBase64 = Base64.encodeToString(vaultKey.encoded, Base64.NO_WRAP)
 
-            val (encryptedVaultKey, keyIv, _) = CryptoManager.encrypt(vaultKeyBase64, derivedKey)
+//            val (encryptedVaultKey, keyIv, _) = CryptoManager.encrypt(vaultKeyBase64, derivedKey)
 
-            val vaultKeyData = VaultKeyData(
-                encryptedVaultKey = encryptedVaultKey,
-                iv = keyIv
-            )
+//            val vaultKeyData = VaultKeyData(
+//                encryptedVaultKey = encryptedVaultKey,
+//                iv = keyIv
+//            )
 
-            val (encryptedData, dataIv) = encryptVault(emptyList(), vaultKey)
+            val (encryptedData, dataIv) = encryptVault(emptyList(), derivedKey)
             val vault = EncryptedVault(
                 encryptedData = encryptedData,
                 iv = dataIv,
@@ -42,12 +44,15 @@ class MasterPasswordRepository @Inject constructor(
             )
 
             val updates = mapOf(
-                "vaultKey" to vaultKeyData,
+//                "vaultKey" to vaultKeyData,
                 "vault" to vault,
                 "salt" to saltBase64,
                 "securityInitialized" to true
             )
             userRef.updateChildren(updates).await()
+
+            // Set the master password
+            setPassword(masterPassword, uid, saltBase64)
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -59,6 +64,8 @@ class MasterPasswordRepository @Inject constructor(
         return try {
             val saltBytes = Base64.decode(saltBase64, Base64.NO_WRAP)
             val key = CryptoManager.deriveKey(masterPassword, saltBytes)
+            VaultSession.storeKey(key)
+            VaultSession.storeSalt(saltBytes)
 
             val (encryptedData, iv, _) = CryptoManager.encrypt("AUTH_SUCCESS", key)
             val data = EncryptedDataAndIV(encryptedData, iv)
@@ -79,6 +86,8 @@ class MasterPasswordRepository @Inject constructor(
         return try {
             val saltBytes = Base64.decode(salt, Base64.NO_WRAP)
             val key = CryptoManager.deriveKey(masterPassword, saltBytes)
+            VaultSession.storeKey(key)
+            VaultSession.storeSalt(saltBytes)
 
             val snapshot = database.child("users").child(uid).child("masterPassword").get().await()
             val encryptedData = snapshot.child("encryptedData").getValue(String::class.java)
@@ -112,27 +121,37 @@ class MasterPasswordRepository @Inject constructor(
             val oldDerivedKey = CryptoManager.deriveKey(oldPassword, saltBytes)
             val newDerivedKey = CryptoManager.deriveKey(newPassword, saltBytes)
 
-            val vaultKeySnapshot = database.child("users").child(uid).child("vaultKey").get().await()
-            val encryptedVaultKey = vaultKeySnapshot.child("encryptedVaultKey").getValue(String::class.java)
-                ?: return Result.failure(Exception("Vault key missing"))
-            val keyIv = vaultKeySnapshot.child("iv").getValue(String::class.java)
-                ?: return Result.failure(Exception("Vault key IV missing"))
+//            val vaultKeySnapshot = database.child("users").child(uid).child("vaultKey").get().await()
+//            val encryptedVaultKey = vaultKeySnapshot.child("encryptedVaultKey").getValue(String::class.java)
+//                ?: return Result.failure(Exception("Vault key missing"))
+//            val keyIv = vaultKeySnapshot.child("iv").getValue(String::class.java)
+//                ?: return Result.failure(Exception("Vault key IV missing"))
 
-            val vaultKeyBase64 = CryptoManager.decrypt(encryptedVaultKey, keyIv, oldDerivedKey)
+//            val vaultKeyBase64 = CryptoManager.decrypt(encryptedVaultKey, keyIv, oldDerivedKey)
 
-            val (newEncryptedVaultKey, newIv, _) = CryptoManager.encrypt(vaultKeyBase64, newDerivedKey)
+//            val (newEncryptedVaultKey, newIv, _) = CryptoManager.encrypt(vaultKeyBase64, newDerivedKey)
 
-            val newVaultKeyData = VaultKeyData(
-                encryptedVaultKey = newEncryptedVaultKey,
-                iv = newIv
+//            val newVaultKeyData = VaultKeyData(
+//                encryptedVaultKey = newEncryptedVaultKey,
+//                iv = newIv
+//            )
+            val vaultSnapshot = database.child("users").child(uid).child("vault").get().await()
+            val encryptedVault = vaultSnapshot.getValue(EncryptedVault::class.java)
+                ?: return Result.failure(Exception("Vault not found"))
+
+            val decryptedVault = VaultEncryptionManager.decryptVault(
+                encryptedData = encryptedVault.encryptedData,
+                ivBase64 = encryptedVault.iv,
+                key = oldDerivedKey
             )
+            val newEncryptedVault = VaultEncryptionManager.encryptVault(decryptedVault, newDerivedKey)
 
             val (encryptedData, masterIv, _) = CryptoManager.encrypt("AUTH_SUCCESS", newDerivedKey)
             val masterPasswordData = EncryptedDataAndIV(encryptedData, masterIv)
 
             val updates = mapOf(
                 "masterPassword" to masterPasswordData,
-                "vaultKey" to newVaultKeyData
+                "vault" to newEncryptedVault
             )
             database.child("users").child(uid).updateChildren(updates).await()
 

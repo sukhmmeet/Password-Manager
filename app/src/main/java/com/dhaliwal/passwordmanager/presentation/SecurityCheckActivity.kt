@@ -2,12 +2,14 @@ package com.dhaliwal.passwordmanager.presentation
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
@@ -29,6 +32,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,7 +40,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -48,6 +55,7 @@ import com.dhaliwal.passwordmanager.data.model.PassState
 import com.dhaliwal.passwordmanager.data.model.SecurityState
 import com.dhaliwal.passwordmanager.presentation.vault.VaultActivity
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
+import com.dhaliwal.passwordmanager.utils.AppTheme
 import com.dhaliwal.passwordmanager.utils.Util.isDarkTheme
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -58,10 +66,16 @@ class SecurityCheckActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContent {
-            val user = Firebase.auth.currentUser
-            PasswordManagerTheme(isDarkTheme(LocalContext.current)) {
-                SecurityCheckUI()
+            PasswordManagerTheme() {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                        .background(if(isSystemInDarkTheme()) Color.Black else Color.White)
+                        .statusBarsPadding()
+                ){
+                    SecurityCheckUI()
+                }
             }
         }
     }
@@ -77,9 +91,24 @@ fun SecurityCheckUI() {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
 
+    // Initialize on first composition
     LaunchedEffect(Unit) {
-        viewModel.fetchSalt()
-        viewModel.checkUser()
+        viewModel.refreshSecurityCheck()
+    }
+
+    // Handle lifecycle events to refresh when activity resumes
+    DisposableEffect(Unit) {
+        val activity = context as? ComponentActivity
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshSecurityCheck()
+            }
+        }
+        activity?.lifecycle?.addObserver(observer)
+
+        onDispose {
+            activity?.lifecycle?.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(state) {

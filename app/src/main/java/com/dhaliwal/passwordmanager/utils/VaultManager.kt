@@ -37,7 +37,7 @@ object VaultManager {
         return EncryptedVault(
             encryptedData = data,
             iv = iv,
-            updatedAt = encryptedVault.updatedAt
+            updatedAt = System.currentTimeMillis()
         )
     }
 

@@ -72,9 +72,15 @@ object CryptoManager {
         return String(decryptedBytes)
     }
 
+    // 🔑 Generate random AES key (for vault encryption)
     fun generateAESKey(): SecretKey {
         val keyGenerator = KeyGenerator.getInstance("AES")
         keyGenerator.init(256) // 🔐 256-bit AES key
         return keyGenerator.generateKey()
+    }
+
+    // 🔑 Convert raw AES bytes to SecretKey
+    fun getAESKeyFromBytes(keyBytes: ByteArray): SecretKey {
+        return SecretKeySpec(keyBytes, "AES")
     }
 }

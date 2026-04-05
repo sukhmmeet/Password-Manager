@@ -1,7 +1,6 @@
 package com.dhaliwal.passwordmanager.utils
 
 import android.content.Context
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.core.content.edit
 
 object AppTheme {
@@ -9,13 +8,13 @@ object AppTheme {
     private const val PREF_NAME = "theme_pref"
     private const val KEY_THEME = "theme_mode"
 
-    fun getAppTheme(context: Context): ThemeMode {
+    fun getTheme(context: Context): ThemeMode {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val value = prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name)
         return ThemeMode.valueOf(value!!)
     }
 
-    fun setAppTheme(context: Context, mode: ThemeMode) {
+    fun setTheme(context: Context, mode: ThemeMode) {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         prefs.edit { putString(KEY_THEME, mode.name) }
     }

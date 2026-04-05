@@ -5,4 +5,5 @@
     <string name="title_activity_forgot_password">ForgotPassword</string>
     <string name="default_web_client_id">468072662256-np4rkgnddat2vlc5nq7blg2e11buh35p.apps.googleusercontent.com</string>
     <string name="title_activity_vault">VaultActivity</string>
+    <string name="title_activity_add_or_edit_entry">AddOrEditEntryActivity</string>
 </resources>

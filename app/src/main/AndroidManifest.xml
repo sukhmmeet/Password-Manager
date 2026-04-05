@@ -15,6 +15,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PasswordManager">
         <activity
+            android:name=".presentation.vault.AddOrEditEntryActivity"
+            android:exported="false"
+            android:label="@string/title_activity_add_or_edit_entry"
+            android:theme="@style/Theme.PasswordManager" />
+        <activity
             android:name=".presentation.vault.VaultActivity"
             android:exported="false"
             android:label="@string/title_activity_vault"
@@ -35,7 +40,7 @@
             android:label="@string/title_activity_login_and_signup"
             android:theme="@style/Theme.PasswordManager" />
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashScreenActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.PasswordManager">

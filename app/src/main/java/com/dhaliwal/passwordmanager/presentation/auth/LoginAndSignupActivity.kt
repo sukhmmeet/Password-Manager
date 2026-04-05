@@ -3,6 +3,7 @@ package com.dhaliwal.passwordmanager.presentation.auth
 import android.content.Intent
 import androidx.credentials.CredentialManager
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,6 +62,7 @@ import com.dhaliwal.passwordmanager.data.model.AuthState
 import com.dhaliwal.passwordmanager.data.model.FirebaseAuthViewModel
 import com.dhaliwal.passwordmanager.presentation.SecurityCheckActivity
 import com.dhaliwal.passwordmanager.ui.theme.PasswordManagerTheme
+import com.dhaliwal.passwordmanager.utils.CryptoManager
 import com.dhaliwal.passwordmanager.utils.Util
 import com.dhaliwal.passwordmanager.utils.Util.isDarkTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -69,9 +73,16 @@ class LoginAndSignupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContent {
-            PasswordManagerTheme(isDarkTheme(LocalContext.current)) {
-                AuthScreen()
+            PasswordManagerTheme {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                        .background(if(isSystemInDarkTheme()) Color.Black else Color.White)
+                        .statusBarsPadding()
+                ){
+                    AuthScreen()
+                }
             }
         }
     }
@@ -107,6 +118,7 @@ fun AuthScreen() {
             is AuthState.Success -> {
                 Toast.makeText(context, "${if (isLogin) "Login" else "Sign up"} Successful", Toast.LENGTH_SHORT).show()
                 context.startActivity(Intent(context, SecurityCheckActivity::class.java))
+                (context as? ComponentActivity)?.finish()
             }
 
             is AuthState.Error -> {

@@ -42,11 +42,17 @@ class MasterPasswordViewModel @Inject constructor(
         _state.value = PassState.Idle
     }
 
+    fun refreshSecurityCheck() {
+        _state.value = PassState.Idle
+        _securityState.value = SecurityState.Loading
+        fetchSalt()
+        checkUser()
+    }
+
     fun checkUser() {
         val uid = getUid() ?: return
 
         viewModelScope.launch {
-            _securityState.value = SecurityState.Loading
 
             val result = repository.hasMasterPassword(uid)
 

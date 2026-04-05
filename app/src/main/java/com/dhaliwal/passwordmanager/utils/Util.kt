@@ -9,7 +9,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 object Util {
     @Composable
     fun isDarkTheme(context: Context) : Boolean{
-        val themeMode = AppTheme.getAppTheme(context)
+        val themeMode = AppTheme.getTheme(context)
         return when (themeMode) {
             ThemeMode.LIGHT -> false
             ThemeMode.DARK -> true
