@@ -28,7 +28,6 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
-    // 🔹 Signup
     suspend fun signup(email: String, password: String): Result<Unit> {
         return try {
             auth.createUserWithEmailAndPassword(email, password).await()
@@ -69,7 +68,6 @@ class FirebaseAuthRepository @Inject constructor(
         return snapshot.exists()
     }
 
-    // 🔹 Reset Password
     suspend fun sendResetPasswordEmail(email: String): Result<Unit> {
         return try {
             auth.sendPasswordResetEmail(email).await()
@@ -79,7 +77,6 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
-    // 🔹 Google Login (Clean version)
     suspend fun loginWithGoogle(
         context: Context,
         credentialManager: CredentialManager,
@@ -113,8 +110,8 @@ class FirebaseAuthRepository @Inject constructor(
                 Result.failure(Exception("Invalid credential type"))
             }
 
-        } catch (e: NoCredentialException) {
-            Result.failure(Exception("No Google account found"))
+        } catch (_: NoCredentialException) {
+            Result.failure(Exception("Try again with Google Sign-In"))
         } catch (e: GetCredentialException) {
             Result.failure(e)
         } catch (e: Exception) {
@@ -122,7 +119,6 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
-    // 🔹 Logout
     fun logout() {
         auth.signOut()
     }
