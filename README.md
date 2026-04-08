@@ -1,72 +1,72 @@
-# 🔐 Password Manager App
+# 🔐 Secure Password Manager (Android)
 
-A fully developed Android password manager focused on **client-side encryption and secure credential storage**.  
-Built with modern Android tools and Firebase, this app ensures that sensitive user data remains encrypted and accessible only with the correct master password.
+A security-focused Android password manager implementing **client-side encryption**, **strong key derivation**, and **zero-knowledge storage principles**.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Highlights
 
-- 🔑 **User Authentication**
-  - Secure login & signup using Firebase Authentication
-
-- 🔐 **Strong Encryption (AES-256 GCM)**
-  - All vault data is encrypted locally before being stored
-  - Uses **AES/GCM/NoPadding** for confidentiality + integrity
+- 🔐 **AES-256 GCM Encryption**
+  - Ensures both confidentiality and integrity of data
 
 - 🔑 **Secure Key Derivation**
-  - Master password is converted into an encryption key using:
-    - PBKDF2WithHmacSHA256  
-    - 200,000+ iterations  
-    - Unique per-user salt
+  - PBKDF2WithHmacSHA256
+  - 200,000+ iterations
+  - Unique per-user salt
+
+- 🧠 **Zero-Knowledge Design (Basic)**
+  - Master password is never stored
+  - Firebase only stores encrypted data
 
 - 🗂 **Encrypted Vault**
-  - Vault stored as encrypted JSON in Firebase
-  - Supports add, edit, and delete operations
+  - Entire vault stored as encrypted JSON
+  - Decryption happens locally on device
 
-- 🔒 **Master Password Protection**
-  - Password is never stored directly
-  - Incorrect password → decryption fails → vault remains locked
+- 🔒 **Authentication via Cryptography**
+  - Incorrect password → GCM authentication failure
 
-- ⚡ **Session-Based Access**
-  - Encryption key generated only after entering master password
-  - Key is stored temporarily during session
-
-- 📱 **Modern UI**
-  - Built using Jetpack Compose
-
-- 🌙 **Dark Mode Support**
-
-- 🛡 **Screen Security**
-  - Screenshots & screen recording disabled
+- 📱 **Modern Android Stack**
+  - Kotlin + Jetpack Compose + MVVM
 
 ---
 
-## 🛠 Tech Stack
+## 🧱 Architecture
 
-- **Kotlin**
-- **Jetpack Compose**
-- **Firebase Authentication**
-- **Firebase Realtime Database / Firestore**
-- **AES-256 (GCM Mode)**
-- **PBKDF2 Key Derivation**
-- **MVVM Architecture**
+```text
+User → Master Password
+        ↓
+   PBKDF2 (Key Derivation)
+        ↓
+   AES Key (256-bit)
+        ↓
+Decrypt / Encrypt Vault
+        ↓
+Firebase (Encrypted Vault + Salt)
+```
 
 ---
 
-## 🔐 Security Overview
+## 🔐 Security Flow
 
-1. User logs in via Firebase  
-2. User enters **master password**  
-3. App:
-   - Retrieves user-specific **salt**
-   - Derives encryption key using PBKDF2  
-4. Vault (stored as encrypted JSON) is decrypted locally  
-5. If password is incorrect:
-   - Decryption fails due to GCM authentication
-   - Vault remains inaccessible  
+1. User logs in (Firebase Authentication)  
+2. App fetches **salt** from database  
+3. User enters master password  
+4. Key is derived using PBKDF2  
+5. Vault is decrypted locally using AES-GCM  
+6. If password is incorrect:
+   - Decryption fails (authentication error)
+   - Vault remains locked  
 
-> ⚠️ If the master password is lost, the vault cannot be recovered.
+---
+
+## 🛡 Threat Model
+
+| Scenario | Protection |
+|--------|-----------|
+| Firebase data leak | Data is encrypted (AES-GCM) |
+| Wrong password | Decryption fails |
+| Server compromise | No plaintext data exposed |
+| Password storage | Not stored anywhere |
 
 ---
 
