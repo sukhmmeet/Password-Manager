@@ -26,16 +26,6 @@ class MasterPasswordRepository @Inject constructor(
             val saltBase64 = Base64.encodeToString(saltBytes, Base64.NO_WRAP)
             val derivedKey = CryptoManager.deriveKey(masterPassword, saltBytes)
 
-//            val vaultKey = CryptoManager.generateAESKey()
-//            val vaultKeyBase64 = Base64.encodeToString(vaultKey.encoded, Base64.NO_WRAP)
-
-//            val (encryptedVaultKey, keyIv, _) = CryptoManager.encrypt(vaultKeyBase64, derivedKey)
-
-//            val vaultKeyData = VaultKeyData(
-//                encryptedVaultKey = encryptedVaultKey,
-//                iv = keyIv
-//            )
-
             val (encryptedData, dataIv) = encryptVault(emptyList(), derivedKey)
             val vault = EncryptedVault(
                 encryptedData = encryptedData,
@@ -44,7 +34,6 @@ class MasterPasswordRepository @Inject constructor(
             )
 
             val updates = mapOf(
-//                "vaultKey" to vaultKeyData,
                 "vault" to vault,
                 "salt" to saltBase64,
                 "securityInitialized" to true
